@@ -1,28 +1,29 @@
-[![Build Status](https://travis-ci.org/laslabs/odoo-module_template.svg?branch=9.0)](https://travis-ci.org/laslabs/odoo-module_template)
-[![Coverage Status](https://coveralls.io/repos/laslabs/odoo-module_template/badge.png?branch=9.0)](https://coveralls.io/r/LasLabs/odoo-module_template?branch=9.0)
+[![Build Status](https://travis-ci.org/laslabs/odoo-telephony.svg?branch=8.0)](https://travis-ci.org/laslabs/odoo-telephony)
+[![Coverage Status](https://coveralls.io/repos/laslabs/odoo-telephony/badge.png?branch=8.0)](https://coveralls.io/r/LasLabs/odoo-telephony)
 
-{Description of Module Package}
-=============================
+Odoo Telephony Modules
+======================
 
-This project aim to deal with modules related to manage...
+This project provides Odoo modules related to interacting with telephony services
 
 You'll find modules that:
 
- - {Do things}
+ - Receive Faxes
  
 [//]: # (addons)
 Available addons
 ----------------
 addon | version | summary
 --- | --- | ---
-[module_name](module_name/) | 9.0.0.0.0 | Template module
+[base_fax](base_fax/) | 8.0.1.0.0 | Base faxing module
+[fax_sfax](fax_sfax/) | 8.0.1.0.0 | Integrates to SFax
 
 
 Unported addons
 ---------------
 addon | version | summary
 --- | --- | ---
-[module_name](module_name/) | 9.0.0.0.0 | Template module
+
 
 
 [//]: # (end addons)
@@ -33,11 +34,11 @@ Credits
 Contributors
 ------------
 
-* My Name <my_email@laslabs.com>
+* Dave Lasley <dave@laslabs.com>
 
 Maintainer
 ----------
 
 This module is maintained by [LasLabs Inc.](https://laslabs.com)
 
-* https://repo.laslabs.com/projects/ODOO/repos/module_template
+* https://repo.laslabs.com/projects/ODOO/repos/telephony
