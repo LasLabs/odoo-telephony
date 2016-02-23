@@ -1,23 +1,7 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Author: Dave Lasley <dave@laslabs.com>
-#    Copyright: 2015 LasLabs, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# © 2015-TODAY LasLabs Inc.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
 from openerp import models, fields, api
 import logging
 
@@ -101,16 +85,17 @@ class FaxTransmission(models.Model):
         vals['ref'] = self.env['ir.sequence'].next_by_code(
             'fax.transmission'
         )
-        vals_reformatted = self._generic_reformat_phonenumbers(vals)
-        _logger.debug('Reformatted for new: %s', vals_reformatted)
-        return super(FaxTransmission, self).create(vals_reformatted)
+        # @TODO: Re-Add phone lib
+        # vals_reformatted = self._generic_reformat_phonenumbers(vals)
+        # _logger.debug('Reformatted for new: %s', vals_reformatted)
+        return super(FaxTransmission, self).create(vals)
 
-    @api.one
-    def write(self, vals):
-        vals_reformatted = self._generic_reformat_phonenumbers(vals)
-        super(FaxTransmission, self).write(vals_reformatted)
+    # @api.multi
+    # def write(self, vals):
+    #     vals_reformatted = self._generic_reformat_phonenumbers(vals)
+    #     super(FaxTransmission, self).write(vals_reformatted)
 
-    @api.one
+    @api.multi
     def action_transmit(self, ):
         self.write({
             'status': 'transmit',

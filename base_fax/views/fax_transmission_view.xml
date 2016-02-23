@@ -3,7 +3,7 @@
 <!--
     Copyright (C) 2014-2015 LasLabs [https://laslabs.com]
     @author Dave Lasley <dave@laslabs.com>
-    The licence is in the file __openerp__.py
+    @license AGPL-3
 -->
 
 <openerp>
@@ -15,22 +15,25 @@
             <field name="arch" type="xml">
                 <form string="Fax Transmission">
                     <header>
-                        <field name="state" widget="statusbar" statusbar_visible="draft,transmit,done"
-                               statusbar_colors="{&quot;transmit_except&quot;:&quot;red&quot;,&quot;transmit&quot;:&quot;blue&quot;}"/>
+                        <field name="state"
+                               widget="statusbar"
+                               statusbar_visible="draft,transmit,done"
+                               statusbar_colors="{'transmit_except': 'red',
+                                                  'transmit': 'blue'}" />
                     </header>
                     <sheet>
                         <h1>
                             <field name="ref"/>
                         </h1>
                         <group>
-                            <field name="adapter_id"/>
-                            <field name="remote_fax"/>
-                            <field name="local_fax"/>
-                            <field name="direction"/>
-                            <field name="timestamp"/>
-                            <field name="response_num"/>
-                            <field name="payload_ids"/>
-                            <field name="status_msg"/>
+                            <field name="adapter_id" />
+                            <field name="remote_fax" />
+                            <field name="local_fax" />
+                            <field name="direction" />
+                            <field name="timestamp" />
+                            <field name="response_num" />
+                            <field name="payload_ids" />
+                            <field name="status_msg" />
                         </group>
                     </sheet>
                 </form>
@@ -42,9 +45,9 @@
             <field name="model">fax.transmission</field>
             <field name="arch" type="xml">
                 <tree string="Fax Transmissions">
-                    <field name="ref"/>
-                    <field name="local_fax"/>
-                    <field name="remote_fax"/>
+                    <field name="ref" />
+                    <field name="local_fax" />
+                    <field name="remote_fax" />
                 </tree>
             </field>
         </record>
