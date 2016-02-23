@@ -3,6 +3,10 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 from openerp import models, fields, api
+import logging
+
+
+_logger = logging.getLogger(__name__)
 
 
 class FaxAdapter(models.Model):
@@ -13,6 +17,7 @@ class FaxAdapter(models.Model):
         string='Transmissions',
         comodel_name='fax.transmission',
         inverse_name='adapter_id',
+        ondelete='cascade',
         help='Transmissions that have taken place over this adapter',
     )
     name = fields.Char(
@@ -48,12 +53,14 @@ class FaxAdapter(models.Model):
 
     @api.multi
     def _compute_adapter_name(self, ):
+        ''' Compute the adapter name '''
         for rec_id in self:
             if rec_id.adapter_pk:
                 rec_id.adapter_name = rec_id._get_adapter().name
 
     @api.multi
     def _get_adapter(self, ):
+        ''' Return Recordset obj of the proprietary fax adapter '''
         self.ensure_one()
         adapter_obj = self.env[self.adapter_model_id.model]
         adapter_id = adapter_obj.browse(self.adapter_pk)
@@ -65,7 +72,9 @@ class FaxAdapter(models.Model):
     def action_fetch_payloads(self, transmission_ids, ):
         '''
         Gets payloads using action_fetch_payloads on proprietary adapter
-        :param  transmission_ids: fax.transmission To fetch for
+
+        Params:
+            transmission_ids: fax.transmission To fetch for
         '''
         for rec_id in self:
             adapter = rec_id._get_adapter()
@@ -75,9 +84,11 @@ class FaxAdapter(models.Model):
     def action_send(self, dialable, payload_ids, send_name=False, ):
         '''
         Sends payload using action_send on proprietary adapter
-        :param  dialable: str Number to fax to (convert_to_dial_number)
-        :param  payload_ids: fax.payload record(s) To Send
-        :param  send_name: str Name of person to send to
+
+        Params:
+            dialable: str Number to fax to (convert_to_dial_number)
+            payload_ids: fax.payload record(s) To Send
+            send_name: str Name of person to send to
         '''
         for rec_id in self:
             adapter = rec_id._get_adapter()

@@ -11,7 +11,7 @@
         
         <record model="ir.ui.view" id="send_fax_wizard">
             <field name='name'>Send Fax</field>
-            <field name='model'>fax.send_fax</field>
+            <field name='model'>fax.send.fax</field>
             <field name='arch' type='xml'>
                 <form string='Send Fax'>
                     <header />
@@ -29,7 +29,7 @@
                     </sheet>
                     <footer>
                         <button special='cancel' string='Cancel' />
-                        <button name='send_fax'
+                        <button name='action_send'
                                 type='object'
                                 string='Send'
                                 class='oe_highlight' />

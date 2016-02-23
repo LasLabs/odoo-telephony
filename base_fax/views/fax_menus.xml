@@ -9,17 +9,29 @@
 <openerp>
     <data>
         
-        <!-- Top menu item -->
-        <menuitem name="Faxing" id="base_fax.fax_menu_main" parent="mail.mail_feeds_main"
-                  groups="base.group_user" sequence="90"/>
+        <!-- Top menu -->
+        <menuitem name="Fax"
+                  id="fax_menu_root"
+                  groups="group_fax_user"
+                  sequence="10" />
         
         <!-- Left menu items -->
+        <menuitem name="Faxing"
+                  id="fax_menu_main"
+                  groups="group_fax_user"
+                  sequence="10" />
         
-        <menuitem name="Payloads" id="fax_payload_menu" parent="base_fax.fax_menu_main"
-                  action="fax_payload_action" sequence="20"/>
+        <menuitem name="Payloads"
+                  id="fax_payload_menu"
+                  parent="fax_menu_main"
+                  action="fax_payload_action"
+                  sequence="10" />
         
-        <menuitem name="Transmissions" id="fax_transmission_menu" parent="base_fax.fax_menu_main"
-                  action="fax_transmission_action" sequence="30"/>
+        <menuitem name="Transmissions"
+                  id="fax_transmission_menu"
+                  parent="fax_menu_main"
+                  action="fax_transmission_action"
+                  sequence="20" />
         
     </data>
 </openerp>

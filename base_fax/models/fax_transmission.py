@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class FaxTransmission(models.Model):
     _name = 'fax.transmission'
     _description = 'Fax Transmission Record'
-    _inherit = ['phone.common']
+    # _inherit = ['phone.common']
     _phone_fields = ['remote_fax', 'local_fax']
     _phone_name_sequence = 10
     _country_field = None
@@ -70,6 +70,7 @@ class FaxTransmission(models.Model):
     )
     payload_ids = fields.Many2many(
         comodel_name='fax.payload',
+        required=True,
     )
     adapter_id = fields.Many2one(
         comodel_name='fax.adapter',
@@ -77,7 +78,9 @@ class FaxTransmission(models.Model):
     )
     ref = fields.Char(
         readonly=True,
+        required=True,
         select=True,
+        help='Automatically generated sequence.',
     )
 
     @api.model

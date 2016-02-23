@@ -45,6 +45,7 @@ class FaxPayloadPage(models.Model):
         string='Payload',
         comodel_name='fax.payload',
         inverse_name='page_ids',
+        required=True,
     )
 
     @api.multi

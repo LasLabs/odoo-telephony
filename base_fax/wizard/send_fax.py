@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class SendFax(models.TransientModel):
     _name = 'fax.send.fax'
     _description = 'Wizard to send faxes'
-    _inherit = ['phone.common']
+    # _inherit = ['phone.common']
     _phone_name_sequence = 10
     _country_field = 'country_id'
     _partner_field = None

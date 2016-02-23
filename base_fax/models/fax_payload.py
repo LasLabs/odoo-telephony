@@ -13,9 +13,8 @@ class FaxPayload(models.Model):
     _description = 'Fax Data Payload'
 
     name = fields.Char(
-        help='Name of payload',
-        store=True,
         select=True,
+        help='Name of payload',
     )
     image_type = fields.Selection(
         [
@@ -31,18 +30,25 @@ class FaxPayload(models.Model):
         help='Store image as this format',
     )
     transmission_ids = fields.Many2many(
-        'fax.transmission',
+        string='Transmissions',
+        comodel_name='fax.transmission',
         inverse_name='payload_ids',
     )
     page_ids = fields.One2many(
         string='Pages',
         comodel_name='fax.payload.page',
         inverse_name='payload_id',
+        ondelete='cascade',
     )
     ref = fields.Char(
         readonly=True,
         select=True,
+        required=True,
+        help='Automatically generated sequence.',
     )
+    _sql_constraints = [
+        ('ref_uniq', 'UNIQUE(ref)', 'Each ref must be unique.')
+    ]
 
     @api.model
     def create(self, vals, ):
@@ -53,16 +59,16 @@ class FaxPayload(models.Model):
             vals['image']: str Raw image data, will convert to page_ids
         '''
         if vals.get('image'):
-            images = self._convert_image(
+            images = self.action_convert_image(
                 vals['image'], vals['image_type']
             )
             vals['page_ids'] = []
             for idx, img in enumerate(images):
                 vals['page_ids'].append((0, 0, {
-                    'name': '%02d.png' % idx,
+                    'name': '%02d.png' % (idx + 1),
                     'image': img,
                 }))
-            del vals['image']  # < The warning was killing my OCD
+            del vals['image']  # Suppress invalid col warning
         vals['ref'] = self.env['ir.sequence'].next_by_code(
             'fax.payload'
         )
@@ -79,12 +85,6 @@ class FaxPayload(models.Model):
         '''
         for rec_id in self:
             _vals = copy(vals)
-            if _vals.get('image_type'):
-                if rec_id.image_type != _vals['image_type']:
-                    for img in rec_id.page_ids:
-                        img.image = rec_id._convert_image(
-                            img['image'], _vals['image_type']
-                        )
             if _vals.get('image'):
                 _vals['page_ids'] = []
                 image_type = _vals.get('image_type') or rec_id.image_type
@@ -93,10 +93,16 @@ class FaxPayload(models.Model):
                 )
                 for idx, img in enumerate(images):
                     _vals['page_ids'].append((0, 0, {
-                        'name': '%02d.png' % idx + 1,
+                        'name': '%02d.png' % (idx + 1),
                         'image': img,
                     }))
                 del _vals['image']  # < The warning was killing my OCD
+            elif _vals.get('image_type'):
+                if rec_id.image_type != _vals['image_type']:
+                    for img in rec_id.page_ids:
+                        img.image = rec_id.action_convert_image(
+                            img.image, _vals['image_type']
+                        )
             super(FaxPayload, rec_id).write(vals)
 
     @api.multi
@@ -109,7 +115,7 @@ class FaxPayload(models.Model):
             fax_number: str Number to fax to
 
         Returns:
-            class:``fax.transmission`` Representing fax transmission
+            :class:``fax.transmission`` Representing fax transmission
         '''
         for rec_id in self:
             return adapter_id.action_send(fax_number, rec_id)
