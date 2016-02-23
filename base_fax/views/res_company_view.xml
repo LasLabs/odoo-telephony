@@ -17,7 +17,8 @@
                 <xpath expr="//notebook" position="inside">
                     <page string="Faxing">
                         <group>
-                            <field name="fax_adapter_ids" />
+                            <field name="fax_adapter_ids"
+                                   context="{'default_company_id': id}" />
                         </group>
                     </page>
                 </xpath>

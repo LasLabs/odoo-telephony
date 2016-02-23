@@ -11,6 +11,7 @@ addons:
     packages:
       - expect-dev  # provides unbuffer utility
       - python-lxml  # because pip installation is slow
+      - python-crypto # also because pip == snore
 
 env:
   - VERSION="9.0" LINT_CHECK="1"
@@ -23,6 +24,7 @@ virtualenv:
 
 install:
   - pip install anybox.testing.openerp
+  - pip install phonenumbers
   - git clone https://github.com/OCA/maintainer-quality-tools.git ${HOME}/maintainer-quality-tools
   - export PATH=${HOME}/maintainer-quality-tools/travis:${PATH}
   - travis_install_nightly

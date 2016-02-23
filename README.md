@@ -8,21 +8,21 @@ This project provides Odoo modules related to interacting with telephony service
 
 You'll find modules that:
 
- - Receive Faxes
+ - Connect with Fax services
  
 [//]: # (addons)
+
 Available addons
 ----------------
 addon | version | summary
 --- | --- | ---
-
+[base_fax](base_fax/) | 9.0.1.0.0 | Base faxing module
+[fax_sfax](fax_sfax/) | 9.0.1.0.0 | Integrates to SFax
 
 Unported addons
 ---------------
 addon | version | summary
 --- | --- | ---
-[base_fax](base_fax/) | 9.0.1.0.0 | Base faxing module
-[fax_sfax](fax_sfax/) | 9.0.1.0.0 | Integrates to SFax
 
 
 [//]: # (end addons)

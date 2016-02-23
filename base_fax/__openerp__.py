@@ -19,6 +19,9 @@
         'wizard/send_fax_view.xml',
         'data/ir_sequence.xml',
     ],
+    'depends': [
+        # 'base_phone',
+    ],
     'installable': True,
     'application': False,
 }

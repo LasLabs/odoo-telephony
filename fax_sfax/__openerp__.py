@@ -1,37 +1,27 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Author: Dave Lasley <dave@laslabs.com>
-#    Copyright: 2015 LasLabs Inc. [https://laslabs.com]
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# © 2015-TODAY LasLabs Inc.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
 {
     'name': 'Extension of base_fax providing SFax bindings',
-    'version': '8.0.0.1',
-    'category': 'Phone',
-    'author': "LasLabs, Odoo Community Association (OCA)",
+    'version': '9.0.1.0.0',
+    'category': 'Fax',
+    'author': "LasLabs",
     'license': 'AGPL-3',
-    'website': 'https://github.com/OCA/connector-telephony',
+    'website': 'https://laslabs.com',
     'depends': [
         'base_fax',
     ],
     'data': [
-        'security/ir.model.access.csv',
         'views/res_company_view.xml',
+        'security/ir.model.access.csv',
     ],
+    "external_dependencies": {
+        "python": [
+            'Crypto',
+        ],
+        "bin": [],
+    },
     'installable': True,
     'application': False,
 }
