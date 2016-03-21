@@ -169,4 +169,4 @@ class FaxSfaxCallback(http.Controller):
             _logger.debug('Updating %s', transmission_id)
             transmission_id.write(transmission_vals)
         if transmission_id and not len(transmission_id.payload_ids):
-            transmission_id.adapter_id._fetch_payloads(transmission_id)
+            transmission_id.adapter_id.action_fetch_payloads(transmission_id)
