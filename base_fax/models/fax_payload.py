@@ -1,24 +1,9 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Author: Dave Lasley <dave@laslabs.com>
-#    Copyright: 2015 LasLabs, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# © 2015-TODAY LasLabs Inc.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
 from openerp import models, fields, api
+from copy import copy
 from PIL import Image, ImageSequence
 from io import BytesIO
 
@@ -28,9 +13,8 @@ class FaxPayload(models.Model):
     _description = 'Fax Data Payload'
 
     name = fields.Char(
-        help='Name of payload',
-        store=True,
         select=True,
+        help='Name of payload',
     )
     image_type = fields.Selection(
         [
@@ -46,84 +30,110 @@ class FaxPayload(models.Model):
         help='Store image as this format',
     )
     transmission_ids = fields.Many2many(
-        'fax.transmission',
+        string='Transmissions',
+        comodel_name='fax.transmission',
         inverse_name='payload_ids',
     )
     page_ids = fields.One2many(
-        'fax.payload.page',
+        string='Pages',
+        comodel_name='fax.payload.page',
         inverse_name='payload_id',
+        ondelete='cascade',
     )
     ref = fields.Char(
         readonly=True,
-        store=True,
         select=True,
+        required=True,
+        help='Automatically generated sequence.',
     )
-
-    @api.one
-    def _send(self, adapter_id, fax_number, ):
-        '''
-        Sends fax using specified adapter
-        :param  adapter_id: fax.adapter to use
-        :param  fax_number: str Number to fax to
-        :return fax.transmission: Representing fax transmission
-        '''
-        return adapter_id._send(fax_number, self)
+    _sql_constraints = [
+        ('ref_uniq', 'UNIQUE(ref)', 'Each ref must be unique.')
+    ]
 
     @api.model
     def create(self, vals, ):
         '''
         Override Create method, inject a sequence ref and pages using `image`
-        :param  vals['image']: str Raw image data, will convert to page_ids
+
+        Params:
+            vals['image']: str Raw image data, will convert to page_ids
         '''
         if vals.get('image'):
-            images = self._convert_image(
+            images = self.action_convert_image(
                 vals['image'], vals['image_type']
             )
             vals['page_ids'] = []
             for idx, img in enumerate(images):
                 vals['page_ids'].append((0, 0, {
-                    'name': '%02d.png' % idx,
+                    'name': '%02d.png' % (idx + 1),
                     'image': img,
                 }))
-            del vals['image']  # < The warning was killing my OCD
+            del vals['image']  # Suppress invalid col warning
         vals['ref'] = self.env['ir.sequence'].next_by_code(
             'fax.payload'
         )
         return super(FaxPayload, self).create(vals)
 
-    @api.one
+    @api.multi
     def write(self, vals, ):
         '''
         Override write to allow for image type conversions and page appends
-        :param  vals['image_type']: str Will convert existing pages if needed
-        :param  vals['image']: str Raw image data, will add as page_ids
-        '''
-        if vals.get('image_type'):
-            if self.image_type != vals['image_type']:
-                for img in self.page_ids:
-                    img.image = self._convert_image(
-                        img['image'], vals['image_type']
-                    )
-        if vals.get('image'):
-            vals['page_ids'] = []
-            image_type = vals.get('image_type') or self.image_type
-            images = self._convert_image(vals['image'], image_type)
-            for idx, img in enumerate(images):
-                vals['page_ids'].append((0, 0, {
-                    'name': '%02d.png' % idx,
-                    'image': img,
-                }))
-            del vals['image']  # < The warning was killing my OCD
-        super(FaxPayload, self).write(vals)
 
-    def _convert_image(self, image, image_type, b64_out=True, b64_in=True):
+        Params:
+            vals['image_type']: str Will convert existing pages if needed
+            vals['image']: str Raw image data, will add as page_ids
+        '''
+        for rec_id in self:
+            _vals = copy(vals)
+            if _vals.get('image'):
+                _vals['page_ids'] = []
+                image_type = _vals.get('image_type') or rec_id.image_type
+                images = rec_id.action_convert_image(
+                    _vals['image'], image_type
+                )
+                for idx, img in enumerate(images):
+                    _vals['page_ids'].append((0, 0, {
+                        'name': '%02d.png' % (idx + 1),
+                        'image': img,
+                    }))
+                del _vals['image']  # < The warning was killing my OCD
+            elif _vals.get('image_type'):
+                if rec_id.image_type != _vals['image_type']:
+                    for img in rec_id.page_ids:
+                        img.image = rec_id.action_convert_image(
+                            img.image, _vals['image_type']
+                        )
+            super(FaxPayload, rec_id).write(vals)
+
+    @api.multi
+    def action_send(self, adapter_id, fax_number, ):
+        '''
+        Sends fax using specified adapter
+
+        Params:
+            adapter_id: fax.adapter to use
+            fax_number: str Number to fax to
+
+        Returns:
+            :class:``fax.transmission`` Representing fax transmission
+        '''
+        for rec_id in self:
+            return adapter_id.action_send(fax_number, rec_id)
+
+    @api.model
+    def action_convert_image(self, image, image_type,
+                             b64_out=True, b64_in=True):
         '''
         Convert image for storage and use by the fax adapter
-        :param  image:  str Raw image data (binary or base64)
-        :param  image_type: str
-        :param  b64_out: bool
-        :param  b64_in: bool
-        :return images: list Of raw image data (pages)
+
+        Params:
+            image:  str Raw image data (binary or base64)
+            image_type: str
+            b64_out: bool
+            b64_in: bool
+
+        Yields:
+            list Of base64 encoded raw image data
         '''
         binary = image.decode('base64') if b64_in else image
         with BytesIO(binary) as raw_image:

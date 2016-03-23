@@ -1,38 +1,13 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Author: Dave Lasley <dave@laslabs.com>
-#    Copyright: 2015 LasLabs, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# © 2015-TODAY LasLabs Inc.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
 from openerp import models, fields, api, tools
 
 
 class FaxPayloadPage(models.Model):
     _name = 'fax.payload.page'
     _description = 'Fax Payload Page'
-
-    @api.depends('image')
-    def _compute_images(self):
-        for rec in self:
-            rec.image_xlarge = tools.image_resize_image_big(rec.image)
-            rec.image_large = tools.image_resize_image(
-                rec.image, (384, 384), 'base64', None, True
-            )
-            rec.image_medium = tools.image_resize_image_medium(rec.image)
 
     name = fields.Char(
         help='Name of image',
@@ -42,7 +17,7 @@ class FaxPayloadPage(models.Model):
     image = fields.Binary(
         string='Fax Image',
         attachment=True,
-        # readonly=True,
+        readonly=True,
         required=True,
     )
     image_xlarge = fields.Binary(
@@ -67,6 +42,18 @@ class FaxPayloadPage(models.Model):
         attachment=True,
     )
     payload_id = fields.Many2one(
-        'fax.payload',
+        string='Payload',
+        comodel_name='fax.payload',
         inverse_name='page_ids',
+        required=True,
     )
+
+    @api.multi
+    @api.depends('image')
+    def _compute_images(self):
+        for rec in self:
+            rec.image_xlarge = tools.image_resize_image_big(rec.image)
+            rec.image_large = tools.image_resize_image(
+                rec.image, (384, 384), 'base64', None, True
+            )
+            rec.image_medium = tools.image_resize_image_medium(rec.image)

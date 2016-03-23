@@ -1,25 +1,8 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Author: Dave Lasley <dave@laslabs.com>
-#    Copyright: 2015 LasLabs Inc..
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# © 2015-TODAY LasLabs Inc.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 from openerp import models, fields, api
-from .pkcs7 import PKCS7Encoder
+from ..pkcs7 import PKCS7Encoder
 from Crypto.Cipher import AES
 from datetime import timedelta, datetime
 import requests
@@ -33,41 +16,9 @@ _logger = logging.getLogger(__name__)
 class FaxAdapterSfax(models.Model):
     _name = 'fax.adapter.sfax'
     _description = 'SFax Adapter'
+    _inherits = {'fax.adapter': 'fax_adapter_id'}
     API_ERROR_ID = -1
 
-    @api.one
-    def _compute_token(self, ):
-        ''' Get security token from SFax '''
-        try:
-            timestr = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
-            raw = 'Username=%(uname)s&ApiKey=%(key)s&GenDT=%(timestr)s&' % {
-                'uname': self.username,
-                'key': self.api_key,
-                'timestr': timestr,
-            }
-
-            mode = AES.MODE_CBC
-            encode_obj = PKCS7Encoder()
-            encrypt_obj = AES.new(
-                self.encrypt_key, mode, self.vector.encode('ascii')
-            )
-            padding = encode_obj.encode(raw)
-            cipher = encrypt_obj.encrypt(padding)
-            enc_cipher = cipher.encode('base64')
-            _logger.debug('Got SFax token %s', enc_cipher)
-            self.token = enc_cipher
-
-        except Exception as e:
-            _logger.warn(
-                'Was not able to create security token. Exception: %s', e
-            )
-            self.token = False
-
-    name = fields.Char(
-        required=True,
-        default='SFax',
-    )
     username = fields.Char(
         required=True,
         help='SFax Username / Security Context for API connection',
@@ -93,27 +44,67 @@ class FaxAdapterSfax(models.Model):
     token = fields.Text(
         readonly=True, compute='_compute_token',
     )
-    company_id = fields.Many2one(
-        'res.company'
+    fax_adapter_id = fields.Many2one(
+        string='Generic Fax Adapter',
+        comodel_name='fax.adapter',
+        required=True,
+        ondelete='cascade',
     )
 
     @api.multi
+    def _compute_token(self):
+        """ Get security token from SFax """
+        for rec_id in self:
+            try:
+                timestr = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+                raw = 'Username=%(uname)s&ApiKey=%(key)s&GenDT=%(time)s&' % {
+                    'uname': rec_id.username,
+                    'key': rec_id.api_key,
+                    'time': timestr,
+                }
+
+                mode = AES.MODE_CBC
+                encode_obj = PKCS7Encoder()
+                encrypt_obj = AES.new(
+                    rec_id.encrypt_key,
+                    mode,
+                    rec_id.vector,
+                )
+                padding = encode_obj.encode(raw)
+                cipher = encrypt_obj.encrypt(padding)
+                enc_cipher = cipher.encode('base64')
+                _logger.debug('Got SFax token %s', enc_cipher)
+                rec_id.token = enc_cipher
+
+            except Exception as e:
+                _logger.error(
+                    'Was not able to create security token. Exception: %s', e
+                )
+                rec_id.token = False
+
+    @api.multi
     def validate_token(self, token):
-        '''
-        Decrypt token and validate authenticity
-        :param  token: str
-        :return valid: bool
-        '''
+        """ Decrypt token and validate authenticity
+
+        Params:
+            token: str
+
+        Returns:f
+            valid: bool
+        """
         self.ensure_one()
         mode = AES.MODE_CBC
         encode_obj = PKCS7Encoder()
         encrypt_obj = AES.new(
-            self.encrypt_key, mode, self.vector.encode('ascii')
+            self.encrypt_key,
+            mode,
+            self.vector,
         )
         token = token.decode('base64')
         enc_cipher = encrypt_obj.decrypt(token)
         decoded = encode_obj.decode(enc_cipher)
-        _logger.debug('Decoded SFax token %s', decoded)
+        _logger.info('Decoded SFax token %s', decoded)
         token_obj = {}
         for i in decoded.split('&'):
             try:
@@ -121,35 +112,38 @@ class FaxAdapterSfax(models.Model):
                 token_obj[k] = v
             except ValueError:
                 continue
-        _logger.debug('Got Sfax token parts %s', token_obj)
+        _logger.info('Got Sfax token parts %s', token_obj)
         time_obj = datetime.strptime(token_obj['GenDT'], "%Y-%m-%dT%H:%M:%SZ")
         delta = datetime.now() - time_obj
         if delta >= timedelta(minutes=15):
-            _logger.debug('Token expired (Got %s, expect less than %s)',
+            _logger.error('Token expired (Got %s, expect less than %s)',
                           delta, timedelta(minutes=15))
             return False
         if token_obj['ApiKey'] != self.api_key:
-            _logger.debug('Incorrect Api key (Got %s, expect %s)',
+            _logger.error('Incorrect Api key (Got %s, expect %s)',
                           token_obj['ApiKey'], self.api_key)
             return False
         if token_obj['Username'] != self.username:
-            _logger.debug('Incorrect Username (Got %s, expect %s)',
+            _logger.error('Incorrect Username (Got %s, expect %s)',
                           token_obj['Username'], self.username)
             return False
         _logger.debug('Valid token!')
         return True
 
     @api.multi
-    def __call_api(self, action, uri_params, post=None, files=None, json=True):
-        '''
-        Call SFax api action (/api/:action e.g /api/sendfax)
-        :param  action: str Action to perform (uri part)
-        :param  uri_params: dict Params to pass as GET params
-        :param  post: dict Data to pass as POST
-        :param  files: list of file tuples to upload. (__get_file_tuple)
-        :param  json: bool Whether to decode response as json
-        :return response: mixed
-        '''
+    def _call_api(self, action, uri_params, post=None, files=None, json=True):
+        """ Call SFax api action (/api/:action e.g /api/sendfax)
+
+        Params:
+            action: str Action to perform (uri part)
+            uri_params: dict Params to pass as GET params
+            post: dict Data to pass as POST
+            files: list of file tuples to upload. (__get_file_tuple)
+            json: bool Whether to decode response as json
+
+        Returns:
+            response: mixed
+        """
         self.ensure_one()
         uri = '%(uri)s/%(action)s' % {
             'uri': self.uri,
@@ -190,14 +184,17 @@ class FaxAdapterSfax(models.Model):
             return False
 
     @api.multi
-    def _send(self, dialable, payload_ids, send_name=False, ):
-        '''
-        Sends payload using _send on proprietary adapter
-        :param  dialable: str Number to fax to (convert_to_dial_number)
-        :param  payload_ids: fax.payload record(s) To Send
-        :param  send_name: str Name of person to send to
-        :return vals: dict To create a fax.transmission
-        '''
+    def action_send(self, dialable, payload_ids, send_name=False, ):
+        """ Sends payload using action_send on proprietary adapter
+
+        Params:
+            dialable: str Number to fax to (convert_to_dial_number)
+            payload_ids: :class:``FaxPayload`` record(s) To Send
+            send_name: str Name of person to send to
+
+        Returns:
+            vals: dict To create a fax.transmission
+        """
         self.ensure_one()
         files = {}
         for payload_id in payload_ids:
@@ -205,7 +202,7 @@ class FaxAdapterSfax(models.Model):
             image = payload_id.image
 
             if payload_id.image_type != 'PDF':
-                image = payload_id._convert_image(image, 'PDF', False)
+                image = payload_id.action_convert_image(image, 'PDF', False)
             else:
                 image = image.decode('base64')
 
@@ -217,7 +214,7 @@ class FaxAdapterSfax(models.Model):
             'OptionalParams': '',
         }
 
-        resp = self.__call_api('SendFax', params, files=files)
+        resp = self._call_api('SendFax', params, files=files)
         _logger.debug('Got resp %s', resp)
 
         state = 'transmit' if resp.get('isSuccess') else 'transmit_except'
@@ -233,48 +230,61 @@ class FaxAdapterSfax(models.Model):
         return vals
 
     @api.model
+    def create(self, vals):
+        rec_id = super(FaxAdapterSfax, self).create(vals)
+        model_id = self.env['ir.model'].search([('model', '=', self._name)],
+                                               limit=1)
+        rec_id.fax_adapter_id.write({
+            'adapter_model_id': model_id.id,
+            'adapter_pk': rec_id.id,
+        })
+        return rec_id
+
+    @api.model
     def _debug_fetch_all_payloads(self, ):
-        ''' This shouldn't be needed past module creation   '''
+        """ This shouldn't be needed past module creation   """
         transmission_ids = self.env['fax.transmission'].search([])
-        self.search([])._fetch_payloads(transmission_ids)
+        self.search([]).action_fetch_payloads(transmission_ids)
 
-    @api.one
-    def _fetch_payloads(self, transmission_ids):
-        '''
-        Fetches payload for transmission_ids from API
-        :param  transmission_ids: fax.transmissions To fetch for
-        '''
-        for transmission_id in transmission_ids:
+    @api.multi
+    def action_fetch_payloads(self, transmission_ids):
+        """ Fetches payload for transmission_ids from API
 
-            if transmission_id.direction == 'out':
-                to = transmission_id.remote_fax
-                frm = transmission_id.local_fax
-                api_direction = 'outbound'
-            else:
-                to = transmission_id.local_fax
-                frm = transmission_id.remote_fax
-                api_direction = 'inbound'
+        Params:
+            transmission_ids: :class:``FaxTransmission`` To fetch for
+        """
+        for rec_id in self:
+            for transmission_id in transmission_ids:
 
-            pdf_data = self.__call_api(
-                'Download%(dir)sFaxAsTif' % {'dir': api_direction},
-                {'FaxID': transmission_id.response_num},
-                json=False
-            ).encode('base64')
+                if transmission_id.direction == 'out':
+                    to = transmission_id.remote_fax
+                    frm = transmission_id.local_fax
+                    api_direction = 'outbound'
+                else:
+                    to = transmission_id.local_fax
+                    frm = transmission_id.remote_fax
+                    api_direction = 'inbound'
 
-            name = '[%(id)s] %(to)s => %(from)s' % {
-                'id': transmission_id.response_num,
-                'to': to,
-                'from': frm,
-            }
-            payload_vals = {
-                'image': pdf_data,
-                'image_type': 'PNG',
-                'name': name,
-            }
+                pdf_data = rec_id._call_api(
+                    'Download%(dir)sFaxAsTif' % {'dir': api_direction},
+                    {'FaxID': transmission_id.response_num},
+                    json=False
+                ).encode('base64')
 
-            try:
-                transmission_id.write({
-                    'payload_ids': [(0, 0, payload_vals)]
-                })
-            except Exception as e:
-                _logger.error('Cannot save inbound image - %s', e)
+                name = '[%(id)s] %(to)s => %(from)s' % {
+                    'id': transmission_id.response_num,
+                    'to': to,
+                    'from': frm,
+                }
+                payload_vals = {
+                    'image': pdf_data,
+                    'image_type': 'PNG',
+                    'name': name,
+                }
+
+                try:
+                    transmission_id.write({
+                        'payload_ids': [(0, 0, payload_vals)]
+                    })
+                except Exception as e:
+                    _logger.error('Cannot save inbound image - %s', e)

@@ -15,7 +15,8 @@
             <field name='inherit_id' ref='base_fax.res_company_view_form'/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='fax_adapter_ids']" position="before">
-                    <field name="sfax_adapter_ids">
+                    <field name="sfax_adapter_ids"
+                           context="{'default_company_id': id}" >
                         <form name="SFax Adapter">
                             <group name="adapter">
                                 <field name="name"/>

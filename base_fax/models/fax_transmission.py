@@ -1,23 +1,7 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    Author: Dave Lasley <dave@laslabs.com>
-#    Copyright: 2015 LasLabs, Inc.
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# © 2015-TODAY LasLabs Inc.
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
 from openerp import models, fields, api
 import logging
 
@@ -28,7 +12,7 @@ _logger = logging.getLogger(__name__)
 class FaxTransmission(models.Model):
     _name = 'fax.transmission'
     _description = 'Fax Transmission Record'
-    _inherit = ['phone.common']
+    # _inherit = ['phone.common']
     _phone_fields = ['remote_fax', 'local_fax']
     _phone_name_sequence = 10
     _country_field = None
@@ -86,6 +70,7 @@ class FaxTransmission(models.Model):
     )
     payload_ids = fields.Many2many(
         comodel_name='fax.payload',
+        required=True,
     )
     adapter_id = fields.Many2one(
         comodel_name='fax.adapter',
@@ -93,7 +78,9 @@ class FaxTransmission(models.Model):
     )
     ref = fields.Char(
         readonly=True,
+        required=True,
         select=True,
+        help='Automatically generated sequence.',
     )
 
     @api.model
@@ -101,16 +88,17 @@ class FaxTransmission(models.Model):
         vals['ref'] = self.env['ir.sequence'].next_by_code(
             'fax.transmission'
         )
-        vals_reformatted = self._generic_reformat_phonenumbers(vals)
-        _logger.debug('Reformatted for new: %s', vals_reformatted)
-        return super(FaxTransmission, self).create(vals_reformatted)
+        # @TODO: Re-Add phone lib
+        # vals_reformatted = self._generic_reformat_phonenumbers(vals)
+        # _logger.debug('Reformatted for new: %s', vals_reformatted)
+        return super(FaxTransmission, self).create(vals)
 
-    @api.one
-    def write(self, vals):
-        vals_reformatted = self._generic_reformat_phonenumbers(vals)
-        super(FaxTransmission, self).write(vals_reformatted)
+    # @api.multi
+    # def write(self, vals):
+    #     vals_reformatted = self._generic_reformat_phonenumbers(vals)
+    #     super(FaxTransmission, self).write(vals_reformatted)
 
-    @api.one
+    @api.multi
     def action_transmit(self, ):
         self.write({
             'status': 'transmit',
