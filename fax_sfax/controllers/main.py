@@ -157,7 +157,7 @@ class FaxSfaxCallback(http.Controller):
             sfax_id.write({
                 'transmission_ids': [(0, 0, transmission_vals)],
             })
-            for i in sfax_id.transmission_ids:
+            for i in reversed(sfax_id.transmission_ids):
                 _logger.debug(
                     '%s == %s?',
                     i.response_num, transmission_vals['response_num']
