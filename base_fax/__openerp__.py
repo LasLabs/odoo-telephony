@@ -22,6 +22,6 @@
     'depends': [
         # 'base_phone',
     ],
-    'installable': True,
+    'installable': False,
     'application': False,
 }
