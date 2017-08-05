@@ -2,7 +2,7 @@
 # Copyright 2015 LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp import models, fields, api
+from odoo import models, fields, api
 import logging
 
 
@@ -10,19 +10,15 @@ _logger = logging.getLogger(__name__)
 
 
 class FaxTransmission(models.Model):
+
     _name = 'fax.transmission'
     _description = 'Fax Transmission Record'
-    # _inherit = ['phone.common']
-    _phone_fields = ['remote_fax', 'local_fax']
-    _phone_name_sequence = 10
-    _country_field = None
-    _partner_field = None
 
     remote_fax = fields.Char(
-        select=True,
+        index=True,
     )
     local_fax = fields.Char(
-        select=True
+        index=True
     )
     direction = fields.Selection(
         [
@@ -65,7 +61,7 @@ class FaxTransmission(models.Model):
     )
     response_num = fields.Char(
         readonly=True,
-        select=True,
+        index=True,
         help='API Response (Transmission) ID',
     )
     payload_ids = fields.Many2many(
@@ -79,27 +75,15 @@ class FaxTransmission(models.Model):
     ref = fields.Char(
         readonly=True,
         required=True,
-        select=True,
+        index=True,
+        default=lambda s: s.env['ir.sequence'].next_by_code(
+            'fax.transmission',
+        ),
         help='Automatically generated sequence.',
     )
 
-    @api.model
-    def create(self, vals):
-        vals['ref'] = self.env['ir.sequence'].next_by_code(
-            'fax.transmission'
-        )
-        # @TODO: Re-Add phone lib
-        # vals_reformatted = self._generic_reformat_phonenumbers(vals)
-        # _logger.debug('Reformatted for new: %s', vals_reformatted)
-        return super(FaxTransmission, self).create(vals)
-
-    # @api.multi
-    # def write(self, vals):
-    #     vals_reformatted = self._generic_reformat_phonenumbers(vals)
-    #     super(FaxTransmission, self).write(vals_reformatted)
-
     @api.multi
-    def action_transmit(self, ):
+    def action_transmit(self):
         self.write({
             'status': 'transmit',
         })

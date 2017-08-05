@@ -22,7 +22,7 @@ Credits
 Images
 ------
 
-* LasLabs: `Icon <https://repo.laslabs.com/projects/TEM/repos/odoo-module_template/browse/module_name/static/description/icon.svg?raw>`_.
+* Fax Icon - by `madebyoliver <https://www.flaticon.com/authors/madebyoliver>`_.
 
 Contributors
 ------------

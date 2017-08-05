@@ -2,7 +2,7 @@
 # © 2016-TODAY LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase
 import mock
 
 
@@ -37,9 +37,9 @@ class TestFaxAdapter(TransactionCase):
             )
         )
 
-    def test_get_adapter(self):
+    def testget_adapter(self):
         rec_id = self._new_record()
-        res = rec_id._get_adapter()
+        res = rec_id.get_adapter()
         self.assertEqual(
             self.test_adapter, res,
             'Did not return correct adapter. Expect %s, Got %s' % (
@@ -47,14 +47,14 @@ class TestFaxAdapter(TransactionCase):
             )
         )
 
-    @mock.patch('%s._get_adapter' % model)
+    @mock.patch('%s.get_adapter' % model)
     def test_action_fetch_payloads(self, mk):
         rec_id = self._new_record()
         expect = ['Payloads']
         rec_id.action_fetch_payloads(expect)
         mk().action_fetch_payloads.assert_called_once_with(expect)
 
-    @mock.patch('%s._get_adapter' % model)
+    @mock.patch('%s.get_adapter' % model)
     def test_action_send_passthru(self, mk):
         rec_id = self._new_record()
         expect = ['dialable', ['payload_ids'], 'send_name']
@@ -65,7 +65,7 @@ class TestFaxAdapter(TransactionCase):
             pass
         mk().action_send.assert_called_once_with(*expect)
 
-    @mock.patch('%s._get_adapter' % model)
+    @mock.patch('%s.get_adapter' % model)
     @mock.patch('%s.write' % model)
     def test_action_send_write(self, write_mk, mk):
         rec_id = self._new_record()

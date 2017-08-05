@@ -2,7 +2,7 @@
 # © 2016-TODAY LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase
 import mock
 import os
 import __builtin__
@@ -41,7 +41,7 @@ class TestFaxPayload(TransactionCase):
 
     # Create
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     @mock.patch('__builtin__.super')
     def _create_helper(self, super_mk, mk):
         mk.return_value = [self.vals['image']]
@@ -50,7 +50,7 @@ class TestFaxPayload(TransactionCase):
             res = super_mk().create.call_args[0][0]
         return res, super_mk, mk
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     def test_create_converts_image(self, mk):
         vals = {'image': 'Image', 'image_type': 'Type'}
         mk.side_effect = Exception
@@ -60,7 +60,7 @@ class TestFaxPayload(TransactionCase):
             pass
         mk.assert_called_once_with(vals['image'], vals['image_type'])
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     def test_create_enumerates_images(self, mk):
         vals = {'image': 'Image', 'image_type': 'Type'}
         mk().__iter__.side_effect = Exception
@@ -89,13 +89,6 @@ class TestFaxPayload(TransactionCase):
             'Image key was not deleted from vals. Got %s' % res
         )
 
-    def test_create_adds_ref(self):
-        res, super_mk, mk = self._create_helper()
-        self.assertIn(
-            'ref', res,
-            'Ref key was not added into vals. Got %s' % res
-        )
-
     # Write
 
     @mock.patch('%s.copy' % model_file)
@@ -109,7 +102,7 @@ class TestFaxPayload(TransactionCase):
             pass
         mk.assert_called_once_with(expect)
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     def test_write_converts_image_when_changed_type(self, mk):
         del self.vals['image']
         rec_id = self._new_record()
@@ -118,7 +111,7 @@ class TestFaxPayload(TransactionCase):
         rec_id.write(vals)
         mk.assert_called_once()
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     def test_write_no_convert_image_when_same_type(self, mk):
         del self.vals['image']
         rec_id = self._new_record()
@@ -126,7 +119,7 @@ class TestFaxPayload(TransactionCase):
         rec_id.write(vals)
         mk.assert_not_called()
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     def test_write_converts_new_image(self, mk):
         del self.vals['image']
         rec_id = self._new_record()
@@ -136,7 +129,7 @@ class TestFaxPayload(TransactionCase):
             self.image_vals['image'], 'PNG',
         )
 
-    @mock.patch('%s.action_convert_image' % model)
+    @mock.patch('%s.convert_image' % model)
     def test_write_enumerates_converted_images(self, mk):
         del self.vals['image']
         rec_id = self.model_obj.create(self.vals)

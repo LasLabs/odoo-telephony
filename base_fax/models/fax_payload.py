@@ -2,18 +2,24 @@
 # Copyright 2015 LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp import models, fields, api
+import logging
+
+from odoo import models, fields, api
 from copy import copy
 from PIL import Image, ImageSequence
 from io import BytesIO
 
 
+_logger = logging.getLogger(__name__)
+
+
 class FaxPayload(models.Model):
+
     _name = 'fax.payload'
     _description = 'Fax Data Payload'
 
     name = fields.Char(
-        select=True,
+        index=True,
         help='Name of payload',
     )
     image_type = fields.Selection(
@@ -42,25 +48,29 @@ class FaxPayload(models.Model):
     )
     ref = fields.Char(
         readonly=True,
-        select=True,
+        index=True,
         required=True,
+        default=lambda s: s.env['ir.sequence'].next_by_code(
+            'fax.payload',
+        ),
         help='Automatically generated sequence.',
     )
     _sql_constraints = [
-        ('ref_uniq', 'UNIQUE(ref)', 'Each ref must be unique.')
+        ('ref_uniq', 'UNIQUE(ref)', 'Each ref must be unique.'),
     ]
 
     @api.model
-    def create(self, vals, ):
-        '''
-        Override Create method, inject a sequence ref and pages using `image`
+    def create(self, vals):
+        """ Override Create method, inject a pages using `image`.
 
-        Params:
-            vals['image']: str Raw image data, will convert to page_ids
-        '''
-        if vals.get('image'):
-            images = self.action_convert_image(
-                vals['image'], vals['image_type']
+        Args:
+            vals['image'] (str): Raw image data, will convert to page_ids.
+        Returns:
+            FaxPayload: New payload record.
+        """
+        try:
+            images = self.convert_image(
+                vals['image'], vals['image_type'],
             )
             vals['page_ids'] = []
             for idx, img in enumerate(images):
@@ -68,73 +78,75 @@ class FaxPayload(models.Model):
                     'name': '%02d.png' % (idx + 1),
                     'image': img,
                 }))
-            del vals['image']  # Suppress invalid col warning
-        vals['ref'] = self.env['ir.sequence'].next_by_code(
-            'fax.payload'
-        )
+            del vals['image']
+        except KeyError:
+            _logger.debug('No images were included in the payload.')
         return super(FaxPayload, self).create(vals)
 
     @api.multi
-    def write(self, vals, ):
-        '''
-        Override write to allow for image type conversions and page appends
+    def write(self, vals):
+        """Override write to allow for image type conversions and pages.
 
-        Params:
-            vals['image_type']: str Will convert existing pages if needed
-            vals['image']: str Raw image data, will add as page_ids
-        '''
-        for rec_id in self:
+        Args:
+            vals['image_type'] (str): Will convert existing pages if needed.
+            vals['image'] (str): Raw image data, will add as page_ids.
+        """
+        for record in self:
             _vals = copy(vals)
             if _vals.get('image'):
                 _vals['page_ids'] = []
-                image_type = _vals.get('image_type') or rec_id.image_type
-                images = rec_id.action_convert_image(
-                    _vals['image'], image_type
+                image_type = _vals.get('image_type') or record.image_type
+                images = record.convert_image(
+                    _vals['image'], image_type,
                 )
                 for idx, img in enumerate(images):
                     _vals['page_ids'].append((0, 0, {
                         'name': '%02d.png' % (idx + 1),
                         'image': img,
                     }))
-                del _vals['image']  # < The warning was killing my OCD
+                del _vals['image']
             elif _vals.get('image_type'):
-                if rec_id.image_type != _vals['image_type']:
-                    for img in rec_id.page_ids:
-                        img.image = rec_id.action_convert_image(
-                            img.image, _vals['image_type']
+                if record.image_type != _vals['image_type']:
+                    for img in record.page_ids:
+                        img.image = record.convert_image(
+                            img.image, _vals['image_type'],
                         )
-            super(FaxPayload, rec_id).write(vals)
+            super(FaxPayload, record).write(_vals)
 
     @api.multi
-    def action_send(self, adapter_id, fax_number, ):
-        '''
-        Sends fax using specified adapter
+    def action_send(self, adapter_id, fax_number):
+        """Sends fax using specified adapter.
 
-        Params:
-            adapter_id: fax.adapter to use
-            fax_number: str Number to fax to
+        Args:
+            adapter_id (FaxAdapter): to use
+            fax_number (str): Number to fax to
 
         Returns:
-            :class:``fax.transmission`` Representing fax transmission
-        '''
-        for rec_id in self:
-            return adapter_id.action_send(fax_number, rec_id)
+            FaxTransmission: Transmission records that were generated.
+        """
+        transmissions = self.env['fax.transmission'].browse()
+        for record in self:
+            transmissions += adapter_id.action_send(fax_number, record)
+        return transmissions
 
     @api.model
-    def action_convert_image(self, image, image_type,
-                             b64_out=True, b64_in=True):
-        '''
-        Convert image for storage and use by the fax adapter
+    def convert_image(self, image, image_type, b64_out=True, b64_in=True):
+        """Generator for converting image for storage and use by the fax adapter.
 
-        Params:
-            image:  str Raw image data (binary or base64)
-            image_type: str
-            b64_out: bool
-            b64_in: bool
+        Each iteration of the generator represents a page of the input image.
+
+        Args:
+            image (str): Raw image data
+            image_type (str): Name of the image format (valid formats avail in
+            **FaxPayload.image_type**)
+            b64_out (bool): False if the output data should be binary, True if
+            base64 encoded binary.
+            b64_in (bool): False if the input data is binary. True if base64
+            encoded binary.
 
         Yields:
-            list Of base64 encoded raw image data
-        '''
+            str: Raw image data.
+        """
         binary = image.decode('base64') if b64_in else image
         with BytesIO(binary) as raw_image:
             image = Image.open(raw_image)

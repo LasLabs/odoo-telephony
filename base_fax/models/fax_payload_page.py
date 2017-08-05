@@ -2,17 +2,18 @@
 # Copyright 2015 LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp import models, fields, api, tools
+from odoo import models, fields, api, tools
 
 
 class FaxPayloadPage(models.Model):
+
     _name = 'fax.payload.page'
     _description = 'Fax Payload Page'
 
     name = fields.Char(
         help='Name of image',
         store=True,
-        select=True,
+        index=True,
     )
     image = fields.Binary(
         string='Fax Image',
@@ -51,9 +52,13 @@ class FaxPayloadPage(models.Model):
     @api.multi
     @api.depends('image')
     def _compute_images(self):
-        for rec in self:
-            rec.image_xlarge = tools.image_resize_image_big(rec.image)
-            rec.image_large = tools.image_resize_image(
-                rec.image, (384, 384), 'base64', None, True
+        for record in self:
+            record.image_xlarge = tools.image_resize_image_big(
+                record.image,
             )
-            rec.image_medium = tools.image_resize_image_medium(rec.image)
+            record.image_large = tools.image_resize_image(
+                record.image, (384, 384), 'base64', None, True,
+            )
+            record.image_medium = tools.image_resize_image_medium(
+                record.image,
+            )
