@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # © 2016-TODAY LasLabs Inc.
-# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+# License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp.tests.common import TransactionCase
 import mock
 import time
 import logging
+
+from odoo.tools.misc import mute_logger
+from odoo.tests.common import TransactionCase
 
 
 _logger = logging.getLogger(__name__)
@@ -94,6 +96,9 @@ class TestFaxAdapterSfax(TransactionCase):
 
     # _validate_token()
 
+    @mute_logger(
+        'odoo.addons.fax_sfax.models.fax_adapter_sfax',
+    )
     @mock.patch('%s.AES' % model_file)
     @mock.patch('%s.PKCS7Encoder' % model_file)
     def test_validate_token_expired(self, pkcs_mk, aes_mk):
@@ -106,6 +111,9 @@ class TestFaxAdapterSfax(TransactionCase):
             'Did not fail for expired token. Got %s' % res,
         )
 
+    @mute_logger(
+        'odoo.addons.fax_sfax.models.fax_adapter_sfax',
+    )
     @mock.patch('%s.AES' % model_file)
     @mock.patch('%s.PKCS7Encoder' % model_file)
     def test_validate_token_bad_user(self, pkcs_mk, aes_mk):
@@ -119,6 +127,9 @@ class TestFaxAdapterSfax(TransactionCase):
             'Did not fail for bad Username in token. Got %s' % res,
         )
 
+    @mute_logger(
+        'odoo.addons.fax_sfax.models.fax_adapter_sfax',
+    )
     @mock.patch('%s.AES' % model_file)
     @mock.patch('%s.PKCS7Encoder' % model_file)
     def test_validate_token_bad_api_key(self, pkcs_mk, aes_mk):
@@ -147,7 +158,7 @@ class TestFaxAdapterSfax(TransactionCase):
     @mock.patch('%s.AES' % model_file)
     @mock.patch('%s.PKCS7Encoder' % model_file)
     def test_validate_token_handles_empty_vals(self, pkcs_mk, aes_mk):
-        ''' No error should be raised here '''
+        """ No error should be raised here """
         rec_id, _, _ = self._new_record()
         token = self._new_token(add_str='EmptyVal=&')
         pkcs_mk().decode.return_value = token.decode('base64')

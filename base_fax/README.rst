@@ -1,6 +1,6 @@
 .. image:: https://img.shields.io/badge/license-AGPL--3-blue.svg
-   :target: http://www.gnu.org/licenses/agpl-3.0-standalone.html
-   :alt: License: AGPL-3
+   :target: http://www.gnu.org/licenses/lgpl-3.0-standalone.html
+   :alt: License: LGPL-3
 
 ================
 Odoo Faxing Core
@@ -22,7 +22,7 @@ Credits
 Images
 ------
 
-* LasLabs: `Icon <https://repo.laslabs.com/projects/TEM/repos/odoo-module_template/browse/module_name/static/description/icon.svg?raw>`_.
+* Fax Icon - by `madebyoliver <https://www.flaticon.com/authors/madebyoliver>`_.
 
 Contributors
 ------------

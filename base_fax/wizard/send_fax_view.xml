@@ -1,50 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-    Copyright (C) 2014-2015 LasLabs [https://laslabs.com]
+    Copyright 2015 LasLabs Inc.
     @author Dave Lasley <dave@laslabs.com>
-    @license AGPL-3
+    license LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl.html).
 -->
 
-<openerp>
-    <data>
+<odoo>
+
+    <record model="ir.ui.view" id="send_fax_wizard">
+        <field name='name'>Send Fax</field>
+        <field name='model'>fax.send.fax</field>
+        <field name='arch' type='xml'>
+            <form string='Send Fax'>
+                <header />
+                <sheet>
+                    <group name="adapter">
+                        <field name="adapter_id" />
+                    </group>
+                    <group name="transmission">
+                        <field name="fax_to_number" />
+                    </group>
+                    <group name="payload">
+                        <field name="name" />
+                        <field name="image" widget="image" />
+                    </group>
+                </sheet>
+                <footer>
+                    <button special='cancel' string='Cancel' />
+                    <button name='action_send'
+                            type='object'
+                            string='Send'
+                            class='oe_highlight' />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <act_window id='send_fax_wizard_action'
+                name='Send Fax'
+                src_model='fax.adapter'
+                res_model='fax.send.fax'
+                view_mode='form'
+                target='new'
+                key2='client_action_multi' />
         
-        <record model="ir.ui.view" id="send_fax_wizard">
-            <field name='name'>Send Fax</field>
-            <field name='model'>fax.send.fax</field>
-            <field name='arch' type='xml'>
-                <form string='Send Fax'>
-                    <header />
-                    <sheet>
-                        <group name="adapter">
-                            <field name="adapter_id" />
-                        </group>
-                        <group name="transmission">
-                            <field name="fax_to_number" />
-                        </group>
-                        <group name="payload">
-                            <field name="name" />
-                            <field name="image" widget="image" />
-                        </group>
-                    </sheet>
-                    <footer>
-                        <button special='cancel' string='Cancel' />
-                        <button name='action_send'
-                                type='object'
-                                string='Send'
-                                class='oe_highlight' />
-                    </footer>
-                </form>
-            </field>
-        </record>
-        
-        <act_window id='send_fax_wizard_action'
-                    name='Send Fax'
-                    src_model='fax.adapter'
-                    res_model='fax.send.fax'
-                    view_mode='form'
-                    target='new'
-                    key2='client_action_multi' />
-        
-    </data>
-</openerp>
+</odoo>
