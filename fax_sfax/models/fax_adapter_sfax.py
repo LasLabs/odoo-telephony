@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # Copyright 2015 LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
-from openerp import models, fields, api
+
+from odoo import models, fields, api
 from ..pkcs7 import PKCS7Encoder
-from Crypto.Cipher import AES
 from datetime import timedelta, datetime
 import requests
 import time
@@ -13,10 +13,18 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+try:
+    from Crypto.Cipher import AES
+except ImportError:
+    _logger.info('Must install `pycrypto` library.')
+
+
 class FaxAdapterSfax(models.Model):
+
     _name = 'fax.adapter.sfax'
     _description = 'SFax Adapter'
     _inherits = {'fax.adapter': 'fax_adapter_id'}
+
     API_ERROR_ID = -1
 
     username = fields.Char(
@@ -53,7 +61,7 @@ class FaxAdapterSfax(models.Model):
 
     @api.multi
     def _compute_token(self):
-        """ Get security token from SFax """
+        """Get security token from SFax."""
         for rec_id in self:
             try:
                 timestr = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -85,13 +93,13 @@ class FaxAdapterSfax(models.Model):
 
     @api.multi
     def validate_token(self, token):
-        """ Decrypt token and validate authenticity
+        """ Decrypt token and validate authenticity.
 
-        Params:
-            token: str
+        Args:
+            token (str): Encrypted token.
 
         Returns:f
-            valid: bool
+            bool: Whether the token is valid.
         """
         self.ensure_one()
         mode = AES.MODE_CBC
@@ -132,17 +140,17 @@ class FaxAdapterSfax(models.Model):
 
     @api.multi
     def _call_api(self, action, uri_params, post=None, files=None, json=True):
-        """ Call SFax api action (/api/:action e.g /api/sendfax)
+        """Call SFax api action (/api/:action e.g /api/sendfax).
 
-        Params:
-            action: str Action to perform (uri part)
-            uri_params: dict Params to pass as GET params
-            post: dict Data to pass as POST
-            files: list of file tuples to upload. (__get_file_tuple)
-            json: bool Whether to decode response as json
+        Args:
+            action (str): Action to perform (uri part).
+            uri_params (dict): Params to pass as GET params.
+            post (dict): Data to pass as POST.
+            files (list): of file tuples to upload. (__get_file_tuple).
+            json (bool): Whether to decode response as json.
 
         Returns:
-            response: mixed
+            mixed: JSON decoded API response.
         """
         self.ensure_one()
         uri = '%(uri)s/%(action)s' % {
@@ -184,16 +192,16 @@ class FaxAdapterSfax(models.Model):
             return False
 
     @api.multi
-    def action_send(self, dialable, payload_ids, send_name=False, ):
-        """ Sends payload using action_send on proprietary adapter
+    def action_send(self, dialable, payload_ids, send_name=False):
+        """Sends payload using action_send on proprietary adapter.
 
         Params:
-            dialable: str Number to fax to (convert_to_dial_number)
-            payload_ids: :class:``FaxPayload`` record(s) To Send
-            send_name: str Name of person to send to
+            dialable (str): Number to fax to (convert_to_dial_number).
+            payload_ids (FaxPayload): record(s) To Send.
+            send_name (str): Name of person to send to.
 
         Returns:
-            vals: dict To create a fax.transmission
+            dict: Values to use to create a *FaxTransmission*.
         """
         self.ensure_one()
         files = {}
@@ -202,7 +210,7 @@ class FaxAdapterSfax(models.Model):
             image = payload_id.image
 
             if payload_id.image_type != 'PDF':
-                image = payload_id.action_convert_image(image, 'PDF', False)
+                image = payload_id.convert_image(image, 'PDF', False)
             else:
                 image = image.decode('base64')
 
@@ -232,8 +240,10 @@ class FaxAdapterSfax(models.Model):
     @api.model
     def create(self, vals):
         rec_id = super(FaxAdapterSfax, self).create(vals)
-        model_id = self.env['ir.model'].search([('model', '=', self._name)],
-                                               limit=1)
+        model_id = self.env['ir.model'].search(
+            [('model', '=', self._name)],
+            limit=1,
+        )
         rec_id.fax_adapter_id.write({
             'adapter_model_id': model_id.id,
             'adapter_pk': rec_id.id,
@@ -241,17 +251,17 @@ class FaxAdapterSfax(models.Model):
         return rec_id
 
     @api.model
-    def _debug_fetch_all_payloads(self, ):
-        """ This shouldn't be needed past module creation   """
+    def _debug_fetch_all_payloads(self):
+        """This shouldn't be needed past module creation."""
         transmission_ids = self.env['fax.transmission'].search([])
         self.search([]).action_fetch_payloads(transmission_ids)
 
     @api.multi
     def action_fetch_payloads(self, transmission_ids):
-        """ Fetches payload for transmission_ids from API
+        """Fetches payload for transmission_ids from API.
 
         Params:
-            transmission_ids: :class:``FaxTransmission`` To fetch for
+            FaxTransmission: To fetch for.
         """
         for rec_id in self:
             for transmission_id in transmission_ids:
@@ -268,7 +278,7 @@ class FaxAdapterSfax(models.Model):
                 pdf_data = rec_id._call_api(
                     'Download%(dir)sFaxAsTif' % {'dir': api_direction},
                     {'FaxID': transmission_id.response_num},
-                    json=False
+                    json=False,
                 ).encode('base64')
 
                 name = '[%(id)s] %(to)s => %(from)s' % {
@@ -284,7 +294,7 @@ class FaxAdapterSfax(models.Model):
 
                 try:
                     transmission_id.write({
-                        'payload_ids': [(0, 0, payload_vals)]
+                        'payload_ids': [(0, 0, payload_vals)],
                     })
                 except Exception as e:
                     _logger.error('Cannot save inbound image - %s', e)

@@ -2,70 +2,18 @@
 # Copyright 2015 LasLabs Inc.
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from openerp import http
 from datetime import datetime
-from json import dumps
 import logging
+
+from odoo import http
+
+from ..exceptions import (AuthenticationException,
+                          MultipleTransmissionException,
+                          NoOperationException,
+                          )
 
 
 _logger = logging.getLogger(__name__)
-
-
-class DataException(Exception):
-    error = None
-    description = None
-    status = 500
-    headers = {}
-
-    def __init__(self):
-        super(DataException, self).__init__(self.error)
-
-    def to_dict(self):
-        return {
-            'error': self.error,
-            'error_description': self.description,
-        }
-
-    def __str__(self, ):
-        return dumps(self.to_dict())
-
-
-class AuthenticationException(Exception):
-    error = None
-    description = None
-    status = 400
-    headers = {}
-
-    def __init__(self):
-        super(AuthenticationException, self).__init__(self.error)
-
-    def to_dict(self):
-        return {
-            'error': self.error,
-            'error_description': self.description,
-        }
-
-
-class InvalidTokenException(AuthenticationException):
-    status = 403
-    error = 'invalid_token'
-    description = 'Invalid token provided in request'
-
-
-class MultipleTransmissionException(DataException):
-    error = 'multiple_transmission'
-    description = 'Multiple transmissions found matching provided FaxID'
-
-
-class NoTransmissionException(DataException):
-    status = 404
-    error = 'no_transmission'
-    description = 'No transmission found matching provided FaxID'
-
-
-class NoOperationException(DataException):
-    error = 'noop_error'
-    description = 'Server error, no operation was triggered'
 
 
 class FaxSfaxCallback(http.Controller):
@@ -78,17 +26,14 @@ class FaxSfaxCallback(http.Controller):
         )
 
     def __ok(self, ):
-        return http.Response(
-            'OK',
-            200,
-        )
+        return http.Response('OK', 200)
 
     @http.route('/fax/sfax/callback', type='http', auth='none')
     def do_callback(self, token, **kwargs):
 
         transmission_mdl = http.request.env['fax.transmission'].sudo()
         transmission_id = transmission_mdl.search([
-            ('response_num', '=', kwargs.get('faxid', None))
+            ('response_num', '=', kwargs.get('faxid', None)),
         ])
 
         if len(transmission_id) > 1:
@@ -96,14 +41,14 @@ class FaxSfaxCallback(http.Controller):
 
         if len(transmission_id) == 0:
             sfax_ids = http.request.env['fax.adapter'].sudo().search([
-                ('adapter_model_name', '=', 'fax.adapter.sfax')
+                ('adapter_model_name', '=', 'fax.adapter.sfax'),
             ])
         else:
             sfax_ids = transmission_id.adapter_id
 
         sfax_id = None
         for sfax in sfax_ids:
-            if sfax._get_adapter().validate_token(token):
+            if sfax.get_adapter().validate_token(token):
                 sfax_id = sfax
                 break
 
@@ -111,7 +56,7 @@ class FaxSfaxCallback(http.Controller):
             return self.__throw_error(AuthenticationException())
 
         kwargs['faxdateiso'] = datetime.strptime(
-            kwargs['faxdateiso'], '%Y-%m-%dT%H:%M:%SZ'
+            kwargs['faxdateiso'], '%Y-%m-%dT%H:%M:%SZ',
         )
 
         if kwargs.get('outfromfaxnumber'):
