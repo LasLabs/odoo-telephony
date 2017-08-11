@@ -4,7 +4,6 @@
 
 {
     'name': 'SFax',
-    'description': 'Send and Receive Using SFax in Odoo.',
     'version': '10.0.1.0.0',
     'category': 'Fax',
     'author': "LasLabs",

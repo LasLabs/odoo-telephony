@@ -6,7 +6,7 @@
 SFax Connector
 ==============
 
-This module extends base_fax to provide an interface to SFax in Odoo
+This module allows for the receipt of secure faxes in Odoo using SFax.
 
 Installation
 ============
